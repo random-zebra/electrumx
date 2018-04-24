@@ -1669,16 +1669,61 @@ class PivxTestnet(Coin):
      RPC_PORT = 51472
      IRC_PREFIX = "D_"
      IRC_CHANNEL = "#electrum-pivx"
-     PEERS = [
-         'pivx-testnet.seed.fuzzbawls.pw s t',
-         'pivx-testnet.seed2.fuzzbawls.pw s t',
-         's3v3nh4cks.ddns.net s t',
-         '88.198.192.110 s t'
-     ]
+
+     @classmethod
+     def block(cls, raw_block, height):
+         '''Return a Block namedtuple given a raw block and its height.'''
+         header = cls.block_header(raw_block, height)
+         txs = cls.DESERIALIZER(raw_block, start=len(header)).read_tx_block()
+         return Block(raw_block, header, txs)
+
+     @classmethod
+     def static_header_len(cls, height):
+         '''Given a header height return its length.'''
+         if (height >= 201564):
+             return 112
+         else:
+             return 80
+
+     @classmethod
+     def block_header(cls, block, height):
+         '''Returns the block header given a block and its height.'''
+         return block[:cls.static_header_len(height)]
 
      @classmethod
      def header_hash(cls, header):
          '''Given a header return the hash.'''
-         import quark_hash
-         return quark_hash.getPoWHash(header)
+         version, = struct.unpack('<I', header[:4])
+         if version > 3:
+             return super().header_hash(header)
+         else:
+             import quark_hash
+             return quark_hash.getPoWHash(header)
+
+     @classmethod
+     def electrum_header(cls, header, height):
+         version, = struct.unpack('<I', header[:4])
+         timestamp, bits, nonce = struct.unpack('<III', header[68:80])
+
+         if (version > 3):
+             return {
+                 'block_height': height,
+                 'version': version,
+                 'prev_block_hash': hash_to_str(header[4:36]),
+                 'merkle_root': hash_to_str(header[36:68]),
+                 'timestamp': timestamp,
+                 'bits': bits,
+                 'nonce': nonce,
+                 'acc_checkpoint': hash_to_str(header[80:112])
+             }
+         else:
+             return {
+                 'block_height': height,
+                 'version': version,
+                 'prev_block_hash': hash_to_str(header[4:36]),
+                 'merkle_root': hash_to_str(header[36:68]),
+                 'timestamp': timestamp,
+                 'bits': bits,
+                 'nonce': nonce,
+             }
 
