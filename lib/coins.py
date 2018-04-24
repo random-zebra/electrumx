@@ -1572,3 +1572,113 @@ class Axe(Dash):
         '''
         import x11_hash
         return x11_hash.getPoWHash(header)
+
+
+
+class Pivx(Coin):
+     NAME = "PIVX"
+     SHORTNAME = "PIVX"
+     NET = "mainnet"
+     XPUB_VERBYTES = bytes.fromhex("022D2533")
+     XPRV_VERBYTES = bytes.fromhex("0221312B")
+     GENESIS_HASH = ('0000041e482b9b9691d98eefb48473405c0b8ec31b76df3797c74a78680ef818')
+     P2PKH_VERBYTE = bytes.fromhex("1e")
+     P2SH_VERBYTE = bytes.fromhex("0d")
+     WIF_BYTE = bytes.fromhex("d4")
+     TX_COUNT_HEIGHT = 569399
+     TX_COUNT = 2157510
+     TX_PER_BLOCK = 1
+     STATIC_BLOCK_HEADERS = False
+     RPC_PORT = 51470
+     ZEROCOIN_BLOCK_VERSION = 4
+     IRC_PREFIX = "D_"
+     IRC_CHANNEL = "#electrum-pivx"
+
+     @classmethod
+     def block(cls, raw_block, height):
+         '''Return a Block namedtuple given a raw block and its height.'''
+         header = cls.block_header(raw_block, height)
+         txs = cls.DESERIALIZER(raw_block, start=len(header)).read_tx_block()
+         return Block(raw_block, header, txs)
+
+     @classmethod
+     def static_header_len(cls, height):
+         '''Given a header height return its length.'''
+         if (height >= 863787):
+             return 112
+         else:
+             return 80
+
+     @classmethod
+     def block_header(cls, block, height):
+         '''Returns the block header given a block and its height.'''
+         return block[:cls.static_header_len(height)]
+
+     @classmethod
+     def header_hash(cls, header):
+        '''Given a header return the hash.'''
+        version, = struct.unpack('<I', header[:4])
+        if version > 3:
+            return super().header_hash(header)
+        else:
+            import quark_hash
+            return quark_hash.getPoWHash(header)
+
+     @classmethod
+     def electrum_header(cls, header, height):
+         version, = struct.unpack('<I', header[:4])
+         timestamp, bits, nonce = struct.unpack('<III', header[68:80])
+
+
+         if (version > 3):
+             return {
+                 'block_height': height,
+                 'version': version,
+                 'prev_block_hash': hash_to_str(header[4:36]),
+                 'merkle_root': hash_to_str(header[36:68]),
+                 'timestamp': timestamp,
+                 'bits': bits,
+                 'nonce': nonce,
+                 'acc_checkpoint': hash_to_str(header[80:112])
+             }
+         else:
+             return {
+                 'block_height': height,
+                 'version': version,
+                 'prev_block_hash': hash_to_str(header[4:36]),
+                 'merkle_root': hash_to_str(header[36:68]),
+                 'timestamp': timestamp,
+                 'bits': bits,
+                 'nonce': nonce,
+             }
+
+
+class PivxTestnet(Coin):
+     NAME = "PIVX"
+     SHORTNAME = "PIVX"
+     NET = "testnet"
+     XPUB_VERBYTES = bytes.fromhex("3a8061a0")
+     XPRV_VERBYTES = bytes.fromhex("3a805837")
+     GENESIS_HASH = ('0000041e482b9b9691d98eefb48473405c0b8ec31b76df3797c74a78680ef818')
+     P2PKH_VERBYTE = bytes.fromhex("8B")
+     P2SH_VERBYTE = bytes.fromhex("13")
+     WIF_BYTE = bytes.fromhex("EF")
+     TX_COUNT_HEIGHT = 569399
+     TX_COUNT = 2157510
+     TX_PER_BLOCK = 4
+     RPC_PORT = 51472
+     IRC_PREFIX = "D_"
+     IRC_CHANNEL = "#electrum-pivx"
+     PEERS = [
+         'pivx-testnet.seed.fuzzbawls.pw s t',
+         'pivx-testnet.seed2.fuzzbawls.pw s t',
+         's3v3nh4cks.ddns.net s t',
+         '88.198.192.110 s t'
+     ]
+
+     @classmethod
+     def header_hash(cls, header):
+         '''Given a header return the hash.'''
+         import quark_hash
+         return quark_hash.getPoWHash(header)
+
